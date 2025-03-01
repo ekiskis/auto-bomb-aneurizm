@@ -30,13 +30,13 @@ def create_default_config():
     config['General']['# Интервал между проверками в секундах(если дробное то через точку)'] = '#'
     config['General']['check_interval'] = '2.0'
     config['General']['# Задержка после нажатия клавиши E(проверяет изображение) в секундах(если дробное то через точку)'] = '#'
-    config['General']['press_interval'] = '0.2'
+    config['General']['press_interval'] = '0.8'
     config['General']['# Включение/выключение вывода логов в консоль (True/False)'] = '#'
     config['General']['enable_logs'] = 'True'
     config['General']['# Включение/выключение сохранения отладочных изображений (True/False)'] = ''
     config['General']['enable_debug_images'] = 'False'
     config['General']['# Задержка после запуска программы'] = "#"
-    config['General']['start_timesleep'] = ""
+    config['General']['start_timesleep'] = "3"
     config['General']['# НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ'] = '#'
     
     # Координаты областей (коэффициенты от размеров экрана)
@@ -493,10 +493,11 @@ def automated_color_check(config):
     
     interval = config.get("check_interval", 1.0)
     press_interval = config.get("press_interval", 500)
+    start_timesleep = config.get("start_timesleep", 3)
     
     try:
         input("Нажмите Enter что бы запустить")
-        time.sleep(1)
+        time.sleep(start_timesleep)
         
         print("Запуск авто-работы на заводе")
         print("Для остановки нажмите Ctrl+C")
@@ -525,7 +526,7 @@ def automated_color_check(config):
                 
                 if comparison["match"]:
                     pyautogui.click(click_x, click_y)
-                    time.sleep(0.1)
+                    time.sleep(0.4)
                     keyboard.press_and_release('esc')
                     log_message(f"✓ СОВПАДЕНИЕ: {comparison['reason']}", config)
                     log_message(f"Производим клик в позицию ({click_x}, {click_y})...", config)
@@ -537,11 +538,13 @@ def automated_color_check(config):
                             log_message(f"  Позиция {diff['position']}: текст '{diff['text_color']}', провод '{diff['wire_color']}'", config)
                     log_message("Нажатие клавиши ESC...", config)
                     # Нажатие ESC при несоответствии
+                    time.sleep(0.8)
                     keyboard.press_and_release('esc')
             else:
                 log_message("Не удалось обнаружить полные последовательности цветов либо расшифровать текст", config)
                 log_message("Нажатие клавиши ESC...", config)
                 # Нажатие ESC при ошибке распознавания
+                time.sleep(0.8)
                 keyboard.press_and_release('esc')
             
             # Ждем перед следующей проверкой
