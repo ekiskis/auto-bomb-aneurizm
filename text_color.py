@@ -349,8 +349,8 @@ if __name__ == "__main__":
     wire_region = (wire_left, wire_top, wire_width, wire_height)
     
     # Координаты для клика при совпадении цветов
-    click_x = int(screen_width * 0.5)  # По умолчанию середина экрана
-    click_y = int(screen_height * 0.7)  # Пример положения
+    click_x = int(screen_width * 0.5)
+    click_y = int(screen_height * 0.7)
     
     # Запрос у пользователя координат для клика
     print("=== Программа автоматизированной проверки цветов проводов ===")
@@ -399,3 +399,6 @@ if __name__ == "__main__":
     
     # Запуск автоматизированной проверки
     automated_color_check(text_region, wire_region, (click_x, click_y), interval, press_interval)
+    
+    
+    # 1350x780 -- координаты клика
