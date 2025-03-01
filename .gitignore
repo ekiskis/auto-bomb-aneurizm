@@ -1,3 +1,11 @@
 full_screen_with_region.png
-main.py
 preprocessed_region.png
+original_region.png
+processed_adaptive_thresh.png
+processed_binary_inv.png
+processed_binary.png
+processed_contrast.png
+processed_gray.png
+processed_opening.png
+processed_otsu.png
+processed_scaled.png

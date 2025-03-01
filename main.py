@@ -102,7 +102,7 @@ if __name__ == "__main__":
     
     # Определение области с указанными вами значениями
     left = int(screen_width * 0.6)
-    top = int(screen_height * 0.65)
+    top = int(screen_height * 0.654)
     width = int(screen_width * 0.0725)
     height = int(screen_height * 0.145)
     
