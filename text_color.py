@@ -489,7 +489,7 @@ def automated_color_check(config):
     press_interval = config.get("press_interval", 500)
     
     try:
-        input("Нажмите любую клавишу что бы запустить")
+        input("Нажмите Enter что бы запустить")
         print("Запуск авто-работы на заводе")
         print("Для остановки нажмите Ctrl+C")
         
