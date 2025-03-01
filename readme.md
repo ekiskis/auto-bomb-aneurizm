@@ -1,4 +1,4 @@
-# Авто-работа на заводе с бомбами 
+# Авто-работа на заводе с бомбами для игры ANEURISM IV
 **Нужен [tesseract.exe](https://github.com/UB-Mannheim/tesseract/wiki)**
 Путь к тесерракту либо оставить по дефолту(C:\Program Files\Tesseract-OCR\tesseract.exe), либо замените путь до него в конфиге(программа создает при запуске)
 
