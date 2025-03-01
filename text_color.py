@@ -5,130 +5,183 @@ import pytesseract
 from PIL import Image
 import time
 import re
-import json
 import os
+import configparser
+import ast
 
-# Функция для создания конфигурационного файла по умолчанию
 def create_default_config():
-    default_config = {
-        # Путь к исполняемому файлу tesseract
-        "tesseract_path": r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-        
-        # Интервал между проверками в секундах
-        "check_interval": 1.0,
-        
-        # Задержка после нажатия клавиши E в миллисекундах
-        "press_interval": 500,
-        
-        # Включение/выключение вывода логов в консоль
-        "enable_logs": True,
-        
-        # Включение/выключение сохранения отладочных изображений
-        "enable_debug_images": False,
-        
-        # Настройки диапазонов цветов
-        "color_ranges": {
-            "black": {
-                "lower": [0, 0, 0],
-                "upper": [0, 0, 0],
-                "name": "Black"
-            },
-            "white": {
-                "lower": [150, 150, 170],
-                "upper": [180, 180, 201],
-                "name": "White"
-            },
-            "green": {
-                "lower": [0, 130, 0],
-                "upper": [0, 255, 0],
-                "name": "Green"
-            },
-            "blue": {
-                "lower": [0, 0, 150],
-                "upper": [0, 0, 255],
-                "name": "Blue"
-            },
-            "red": {
-                "lower": [130, 0, 0],
-                "upper": [255, 0, 0],
-                "name": "Red"
-            }
-        },
-        
-        # Прямоугольники для проводов
-        "wire_rectangles": [
-            [75, 154, 235, 22],
-            [74, 205, 237, 26],
-            [74, 256, 235, 22],
-            [74, 311, 237, 17],
-            [74, 363, 235, 14]
-        ],
-        
-        # Область для OCR (текст с названиями цветов)
-        "text_region": {
-            "left_factor": 0.61,
-            "top_factor": 0.654,
-            "width_factor": 0.0725,
-            "height_factor": 0.145
-        },
-        
-        # Область для определения цветов проводов
-        "wire_region": {
-            "left_factor": 0.2,
-            "top_factor": 0.3,
-            "width_factor": 0.2,
-            "height_factor": 0.5
-        },
-        
-        # Координаты для клика при совпадении цветов
-        "click_position": {
-            "x_factor": 0.7,
-            "y_factor": 0.73
-        },
+    """
+    Создает конфигурационный файл по умолчанию в формате INI
+    """
+    config = configparser.ConfigParser()
+    
+    # Основные настройки
+    config['General'] = {
+        '# = ВАЖНЫЕ НАСТРОЙКИ': '',
+        '# = Путь к исполняемому файлу Tesseract OCR': '',
+        'tesseract_path': r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+        '# = Интервал между проверками в секундах': '',
+        'check_interval': '1.0',
+        '# = Задержка после нажатия клавиши E в миллисекундах': '',
+        'press_interval': '500',
+        '# = Включение/выключение вывода логов в консоль (True/False)': '',
+        'enable_logs': 'True',
+        '# = Включение/выключение сохранения отладочных изображений (True/False)': '',
+        'enable_debug_images': 'False',
+        '# = НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ': ''
     }
     
-    # Добавляем комментарии к конфигурационному файлу
-    config_with_comments = {
-        "_comment_general": "Конфигурационный файл для программы проверки цветов проводов",
-        "_comment_tesseract": "Путь к исполняемому файлу Tesseract OCR",
-        "tesseract_path": default_config["tesseract_path"],
+    # Координаты областей (коэффициенты от размеров экрана)
+    config['Regions'] = {
+        '# Область текста с названиями цветов': '',
+        'text_left_factor': '0.61',
+        'text_top_factor': '0.654',
+        'text_width_factor': '0.0725',
+        'text_height_factor': '0.145',
+        '# Область с проводами': '',
+        'wire_left_factor': '0.2',
+        'wire_top_factor': '0.3',
+        'wire_width_factor': '0.2',
+        'wire_height_factor': '0.5',
+        '# Координаты для клика при совпадении': '',
+        'click_x_factor': '0.7',
+        'click_y_factor': '0.73'
+    }
+    
+    # Прямоугольники для проводов
+    config['WireRectangles'] = {
+        '# Прямоугольники для проводов в формате [x, y, ширина, высота]': '',
+        'rect1': '[75, 154, 235, 22]',
+        'rect2': '[74, 205, 237, 26]',
+        'rect3': '[74, 256, 235, 22]',
+        'rect4': '[74, 311, 237, 17]',
+        'rect5': '[74, 363, 235, 14]'
+    }
+    
+    # Диапазоны цветов
+    config['ColorRanges'] = {
+        '# Диапазоны RGB для цветов в формате [R, G, B]': '',
         
-        "_comment_colors": "Диапазоны RGB цветов для распознавания цветов проводов",
-        "color_ranges": default_config["color_ranges"],
+        '# Black': '',
+        'black_lower': '[0, 0, 0]',
+        'black_upper': '[0, 0, 0]',
+        'black_name': 'Black',
         
-        "_comment_wire_rectangles": "Координаты прямоугольников для проводов в формате [x, y, ширина, высота]",
-        "wire_rectangles": default_config["wire_rectangles"],
+        '# White': '',
+        'white_lower': '[150, 150, 170]',
+        'white_upper': '[180, 180, 201]',
+        'white_name': 'White',
         
-        "_comment_text_region": "Область экрана для распознавания текста (коэффициенты от размеров экрана)",
-        "text_region": default_config["text_region"],
+        '# Green': '',
+        'green_lower': '[0, 130, 0]',
+        'green_upper': '[0, 255, 0]',
+        'green_name': 'Green',
         
-        "_comment_wire_region": "Область экрана для определения цветов проводов (коэффициенты от размеров экрана)",
-        "wire_region": default_config["wire_region"],
+        '# Blue': '',
+        'blue_lower': '[0, 0, 150]',
+        'blue_upper': '[0, 0, 255]',
+        'blue_name': 'Blue',
         
-        "_comment_click": "Координаты для клика при совпадении цветов (коэффициенты от размеров экрана)",
-        "click_position": default_config["click_position"],
-        
-        "_comment_intervals": "Временные интервалы работы программы",
-        "check_interval": default_config["check_interval"],
-        "press_interval": default_config["press_interval"],
-        
-        "_comment_debugging": "Настройки логирования и отладки",
-        "enable_logs": default_config["enable_logs"],
-        "enable_debug_images": default_config["enable_debug_images"]
+        '# Red': '',
+        'red_lower': '[130, 0, 0]',
+        'red_upper': '[255, 0, 0]',
+        'red_name': 'Red'
     }
     
     # Записываем конфигурацию в файл
-    with open("config.json", "w", encoding="utf-8") as config_file:
-        json.dump(config_with_comments, config_file, indent=4, ensure_ascii=False)
+    with open('config.ini', 'w', encoding='utf-8') as configfile:
+        config.write(configfile)
     
-    print("Создан файл конфигурации config.json с параметрами по умолчанию.")
-    return default_config
+    print("Создан файл конфигурации config.ini с параметрами по умолчанию.")
+    
+    # Преобразуем в словарь для использования в программе
+    return config_to_dict(config)
+
+def config_to_dict(config):
+    """
+    Преобразует объект configparser.ConfigParser в словарь с правильными типами данных
+    """
+    result = {}
+    
+    # Обработка основных настроек
+    if 'General' in config:
+        result['tesseract_path'] = config['General'].get('tesseract_path', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
+        result['check_interval'] = config['General'].getfloat('check_interval', 1.0)
+        result['press_interval'] = config['General'].getint('press_interval', 500)
+        result['enable_logs'] = config['General'].getboolean('enable_logs', True)
+        result['enable_debug_images'] = config['General'].getboolean('enable_debug_images', False)
+    
+    # Обработка областей экрана
+    if 'Regions' in config:
+        # Область текста
+        result['text_region'] = {
+            'left_factor': config['Regions'].getfloat('text_left_factor', 0.61),
+            'top_factor': config['Regions'].getfloat('text_top_factor', 0.654),
+            'width_factor': config['Regions'].getfloat('text_width_factor', 0.0725),
+            'height_factor': config['Regions'].getfloat('text_height_factor', 0.145)
+        }
+        
+        # Область проводов
+        result['wire_region'] = {
+            'left_factor': config['Regions'].getfloat('wire_left_factor', 0.2),
+            'top_factor': config['Regions'].getfloat('wire_top_factor', 0.3),
+            'width_factor': config['Regions'].getfloat('wire_width_factor', 0.2),
+            'height_factor': config['Regions'].getfloat('wire_height_factor', 0.5)
+        }
+        
+        # Координаты для клика
+        result['click_position'] = {
+            'x_factor': config['Regions'].getfloat('click_x_factor', 0.7),
+            'y_factor': config['Regions'].getfloat('click_y_factor', 0.73)
+        }
+    
+    # Обработка прямоугольников проводов
+    if 'WireRectangles' in config:
+        wire_rectangles = []
+        for i in range(1, 10):  # 5 проводов
+            rect_key = f'rect{i}'
+            if rect_key in config['WireRectangles']:
+                try:
+                    rect = ast.literal_eval(config['WireRectangles'][rect_key])
+                    if isinstance(rect, list) and len(rect) == 4:
+                        wire_rectangles.append(rect)
+                except (SyntaxError, ValueError):
+                    pass  # Пропускаем неправильно форматированные значения
+        
+        result['wire_rectangles'] = wire_rectangles
+    
+    # Обработка диапазонов цветов
+    if 'ColorRanges' in config:
+        color_ranges = {}
+        for color in ['black', 'white', 'green', 'blue', 'red']:
+            lower_key = f'{color}_lower'
+            upper_key = f'{color}_upper'
+            name_key = f'{color}_name'
+            
+            if lower_key in config['ColorRanges'] and upper_key in config['ColorRanges'] and name_key in config['ColorRanges']:
+                try:
+                    lower = ast.literal_eval(config['ColorRanges'][lower_key])
+                    upper = ast.literal_eval(config['ColorRanges'][upper_key])
+                    name = config['ColorRanges'][name_key]
+                    
+                    if isinstance(lower, list) and isinstance(upper, list) and len(lower) == 3 and len(upper) == 3:
+                        color_ranges[color] = {
+                            'lower': lower,
+                            'upper': upper,
+                            'name': name
+                        }
+                except (SyntaxError, ValueError):
+                    pass  # Пропускаем неправильно форматированные значения
+        
+        result['color_ranges'] = color_ranges
+    
+    return result
 
 def load_config():
     """
-    Загружает конфигурацию из файла или создает файл с конфигурацией по умолчанию
+    Загружает конфигурацию из INI-файла или создает файл с конфигурацией по умолчанию
     """
-    config_path = "config.json"
+    config_path = 'config.ini'
     
     # Проверяем существование файла конфигурации
     if not os.path.exists(config_path):
@@ -136,12 +189,11 @@ def load_config():
     
     # Читаем файл конфигурации
     try:
-        with open(config_path, "r", encoding="utf-8") as config_file:
-            config = json.load(config_file)
+        config = configparser.ConfigParser()
+        config.read(config_path, encoding='utf-8')
         
-        # Удаляем комментарии из конфигурации
-        clean_config = {k: v for k, v in config.items() if not k.startswith("_comment")}
-        return clean_config
+        # Преобразуем конфигурацию в словарь
+        return config_to_dict(config)
         
     except Exception as e:
         print(f"Ошибка при чтении файла конфигурации: {e}")
