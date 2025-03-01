@@ -7,7 +7,7 @@ import time
 import re
 
 # Путь к исполняемому файлу tesseract - обновите при необходимости
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Раскомментируйте и настройте для Windows
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Определим RGB-коды для обнаружения цветов проводов
 COLOR_RANGES = {
@@ -317,7 +317,7 @@ def automated_color_check(text_region, wire_region, click_position, interval=1.0
                     # Нажатие ESC при несоответствии
                     pyautogui.press('esc')
             else:
-                print("Не удалось обнаружить полные последовательности цветов")
+                print("Не удалось обнаружить полные последовательности цветов либо расшифровать текст")
                 print("Нажатие клавиши ESC...")
                 # Нажатие ESC при ошибке распознавания
                 pyautogui.press('esc')
@@ -349,8 +349,8 @@ if __name__ == "__main__":
     wire_region = (wire_left, wire_top, wire_width, wire_height)
     
     # Координаты для клика при совпадении цветов
-    click_x = int(screen_width * 0.5)
-    click_y = int(screen_height * 0.7)
+    click_x = int(screen_width * 0.7)
+    click_y = int(screen_height * 0.73)
     
     # Запрос у пользователя координат для клика
     print("=== Программа автоматизированной проверки цветов проводов ===")
