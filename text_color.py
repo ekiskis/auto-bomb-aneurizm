@@ -13,80 +13,80 @@ def create_default_config():
     """
     Создает конфигурационный файл по умолчанию в формате INI
     """
-    config = configparser.ConfigParser()
+    # Создаем ConfigParser с сохранением регистра
+    config = configparser.ConfigParser(empty_lines_in_values=False)
+    # Добавляем настройку для сохранения регистра
+    config.optionxform = str
     
     # Основные настройки
-    config['General'] = {
-        '# = ВАЖНЫЕ НАСТРОЙКИ': '',
-        '# = Путь к исполняемому файлу Tesseract OCR': '',
-        'tesseract_path': r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-        '# = Интервал между проверками в секундах': '',
-        'check_interval': '1.0',
-        '# = Задержка после нажатия клавиши E в миллисекундах': '',
-        'press_interval': '500',
-        '# = Включение/выключение вывода логов в консоль (True/False)': '',
-        'enable_logs': 'True',
-        '# = Включение/выключение сохранения отладочных изображений (True/False)': '',
-        'enable_debug_images': 'False',
-        '# = НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ': ''
-    }
+    config['General'] = {}
+    # Добавляем комментарии как отдельные элементы
+    config['General']['# ВАЖНЫЕ НАСТРОЙКИ'] = '#'
+    config['General']['# Путь к исполняемому файлу Tesseract OCR'] = '#'
+    config['General']['tesseract_path'] = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    config['General']['# Интервал между проверками в секундах'] = '#'
+    config['General']['check_interval'] = '1.0'
+    config['General']['# Задержка после нажатия клавиши E в миллисекундах'] = '#'
+    config['General']['press_interval'] = '500'
+    config['General']['# Включение/выключение вывода логов в консоль (True/False)'] = '#'
+    config['General']['enable_logs'] = 'True'
+    config['General']['# Включение/выключение сохранения отладочных изображений (True/False)'] = ''
+    config['General']['enable_debug_images'] = 'False'
+    config['General']['# НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ'] = '#'
     
     # Координаты областей (коэффициенты от размеров экрана)
-    config['Regions'] = {
-        '# Область текста с названиями цветов': '',
-        'text_left_factor': '0.61',
-        'text_top_factor': '0.654',
-        'text_width_factor': '0.0725',
-        'text_height_factor': '0.145',
-        '# Область с проводами': '',
-        'wire_left_factor': '0.2',
-        'wire_top_factor': '0.3',
-        'wire_width_factor': '0.2',
-        'wire_height_factor': '0.5',
-        '# Координаты для клика при совпадении': '',
-        'click_x_factor': '0.7',
-        'click_y_factor': '0.73'
-    }
+    config['Regions'] = {}
+    config['Regions']['# Область текста с названиями цветов'] = '#'
+    config['Regions']['text_left_factor'] = '0.61'
+    config['Regions']['text_top_factor'] = '0.654'
+    config['Regions']['text_width_factor'] = '0.0725'
+    config['Regions']['text_height_factor'] = '0.145'
+    config['Regions']['# Область с проводами'] = '#'
+    config['Regions']['wire_left_factor'] = '0.2'
+    config['Regions']['wire_top_factor'] = '0.3'
+    config['Regions']['wire_width_factor'] = '0.2'
+    config['Regions']['wire_height_factor'] = '0.5'
+    config['Regions']['# Координаты для клика при совпадении'] = '#'
+    config['Regions']['click_x_factor'] = '0.7'
+    config['Regions']['click_y_factor'] = '0.73'
     
     # Прямоугольники для проводов
-    config['WireRectangles'] = {
-        '# Прямоугольники для проводов в формате [x, y, ширина, высота]': '',
-        'rect1': '[75, 154, 235, 22]',
-        'rect2': '[74, 205, 237, 26]',
-        'rect3': '[74, 256, 235, 22]',
-        'rect4': '[74, 311, 237, 17]',
-        'rect5': '[74, 363, 235, 14]'
-    }
+    config['WireRectangles'] = {}
+    config['WireRectangles']['# Прямоугольники для проводов в формате [x, y, ширина, высота]'] = '#'
+    config['WireRectangles']['rect1'] = '[75, 154, 235, 22]'
+    config['WireRectangles']['rect2'] = '[74, 205, 237, 26]'
+    config['WireRectangles']['rect3'] = '[74, 256, 235, 22]'
+    config['WireRectangles']['rect4'] = '[74, 311, 237, 17]'
+    config['WireRectangles']['rect5'] = '[74, 363, 235, 14]'
     
     # Диапазоны цветов
-    config['ColorRanges'] = {
-        '# Диапазоны RGB для цветов в формате [R, G, B]': '',
-        
-        '# Black': '',
-        'black_lower': '[0, 0, 0]',
-        'black_upper': '[0, 0, 0]',
-        'black_name': 'Black',
-        
-        '# White': '',
-        'white_lower': '[150, 150, 170]',
-        'white_upper': '[180, 180, 201]',
-        'white_name': 'White',
-        
-        '# Green': '',
-        'green_lower': '[0, 130, 0]',
-        'green_upper': '[0, 255, 0]',
-        'green_name': 'Green',
-        
-        '# Blue': '',
-        'blue_lower': '[0, 0, 150]',
-        'blue_upper': '[0, 0, 255]',
-        'blue_name': 'Blue',
-        
-        '# Red': '',
-        'red_lower': '[130, 0, 0]',
-        'red_upper': '[255, 0, 0]',
-        'red_name': 'Red'
-    }
+    config['ColorRanges'] = {}
+    config['ColorRanges']['# Диапазоны RGB для цветов в формате [R, G, B]'] = '#'
+    
+    config['ColorRanges']['# Black'] = '#'
+    config['ColorRanges']['black_lower'] = '[0, 0, 0]'
+    config['ColorRanges']['black_upper'] = '[0, 0, 0]'
+    config['ColorRanges']['black_name'] = 'Black'
+    
+    config['ColorRanges']['# White'] = '#'
+    config['ColorRanges']['white_lower'] = '[150, 150, 170]'
+    config['ColorRanges']['white_upper'] = '[180, 180, 201]'
+    config['ColorRanges']['white_name'] = 'White'
+    
+    config['ColorRanges']['# Green'] = '#'
+    config['ColorRanges']['green_lower'] = '[0, 130, 0]'
+    config['ColorRanges']['green_upper'] = '[0, 255, 0]'
+    config['ColorRanges']['green_name'] = 'Green'
+    
+    config['ColorRanges']['# Blue'] = '#'
+    config['ColorRanges']['blue_lower'] = '[0, 0, 150]'
+    config['ColorRanges']['blue_upper'] = '[0, 0, 255]'
+    config['ColorRanges']['blue_name'] = 'Blue'
+    
+    config['ColorRanges']['# Red'] = '#'
+    config['ColorRanges']['red_lower'] = '[130, 0, 0]'
+    config['ColorRanges']['red_upper'] = '[255, 0, 0]'
+    config['ColorRanges']['red_name'] = 'Red'
     
     # Записываем конфигурацию в файл
     with open('config.ini', 'w', encoding='utf-8') as configfile:
@@ -138,7 +138,7 @@ def config_to_dict(config):
     # Обработка прямоугольников проводов
     if 'WireRectangles' in config:
         wire_rectangles = []
-        for i in range(1, 10):  # 5 проводов
+        for i in range(1, 10):  # 10 проводов максимум
             rect_key = f'rect{i}'
             if rect_key in config['WireRectangles']:
                 try:
@@ -190,6 +190,8 @@ def load_config():
     # Читаем файл конфигурации
     try:
         config = configparser.ConfigParser()
+        # Добавляем настройку для сохранения регистра
+        config.optionxform = str
         config.read(config_path, encoding='utf-8')
         
         # Преобразуем конфигурацию в словарь
@@ -487,7 +489,8 @@ def automated_color_check(config):
     press_interval = config.get("press_interval", 500)
     
     try:
-        print("Запуск автоматизированной проверки цветов...")
+        input("Нажмите любую клавишу что бы запустить")
+        print("Запуск авто-работы на заводе")
         print("Для остановки нажмите Ctrl+C")
         
         while True:
@@ -535,7 +538,7 @@ def automated_color_check(config):
             time.sleep(interval)
             
     except KeyboardInterrupt:
-        print("Автоматизированная проверка остановлена")
+        print("\nАвтоматизированная проверка остановлена")
 
 if __name__ == "__main__":
     # Загрузка конфигурации
