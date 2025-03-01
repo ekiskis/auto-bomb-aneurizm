@@ -4,9 +4,10 @@ import pyautogui
 import pytesseract
 from PIL import Image
 import time
+import re
 
 # Путь к исполняемому файлу tesseract - обновите при необходимости
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Раскомментируйте и настройте для Windows
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Раскомментируйте и настройте для Windowsn
 
 def capture_full_screen():
     """
@@ -24,58 +25,43 @@ def capture_screen_region(region=None):
     screenshot = pyautogui.screenshot(region=region)
     return np.array(screenshot)
 
-def preprocess_image_methods(image):
+def extract_colors(text):
     """
-    Применяет различные методы предобработки изображения и сохраняет их все
-    Возвращает список обработанных изображений
+    Извлекает названия цветов из текста
+    Поддерживаемые цвета: Red, Green, Black, Blue, White
+    Возвращает список найденных цветов в порядке их появления
     """
-    processed_images = []
-    original_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Преобразуем текст к нижнему регистру для упрощения поиска
+    text_lower = text.lower()
     
-    # Метод 1: Простое преобразование в оттенки серого
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    processed_images.append(("gray", gray))
+    # Список поддерживаемых цветов
+    colors = ["red", "green", "black", "blue", "white"]
     
-    # Метод 2: Адаптивное пороговое значение
-    adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                          cv2.THRESH_BINARY_INV, 11, 2)
-    processed_images.append(("adaptive_thresh", adaptive_thresh))
+    # Найдем все вхождения цветов в тексте
+    found_colors = []
     
-    # Метод 3: Обычное пороговое значение с инверсией (белый текст на черном фоне)
-    _, binary_inv = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
-    processed_images.append(("binary_inv", binary_inv))
+    # Используем регулярные выражения для поиска цветов
+    for color in colors:
+        # Ищем все вхождения данного цвета
+        matches = re.finditer(r'\b' + color + r'\b', text_lower)
+        
+        # Добавляем все найденные вхождения с их позициями
+        for match in matches:
+            found_colors.append({
+                "color": color,
+                "position": match.start(),
+                "original": text[match.start():match.end()]  # Оригинальный регистр из текста
+            })
     
-    # Метод 4: Обычное пороговое значение (черный текст на белом фоне)
-    _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-    processed_images.append(("binary", binary))
+    # Сортируем найденные цвета по их позиции в тексте
+    found_colors.sort(key=lambda x: x["position"])
     
-    # Метод 5: Отсо пороговое значение (автоматически выбирает оптимальное значение)
-    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    processed_images.append(("otsu", otsu))
-    
-    # Метод 6: Увеличение контрастности
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    contrast = clahe.apply(gray)
-    _, contrast_thresh = cv2.threshold(contrast, 150, 255, cv2.THRESH_BINARY_INV)
-    processed_images.append(("contrast", contrast_thresh))
-    
-    # Метод 7: Морфологические операции для очистки шума
-    kernel = np.ones((1,1), np.uint8)
-    opening = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, kernel)
-    processed_images.append(("opening", opening))
-    
-    # Метод 8: Масштабирование изображения (увеличение в 2 раза)
-    height, width = gray.shape
-    scaled = cv2.resize(gray, (width*2, height*2), interpolation=cv2.INTER_CUBIC)
-    _, scaled_thresh = cv2.threshold(scaled, 150, 255, cv2.THRESH_BINARY_INV)
-    processed_images.append(("scaled", scaled_thresh))
-    
-    return processed_images
+    # Возвращаем только названия цветов в правильном порядке
+    return [color_info["original"] for color_info in found_colors]
 
 def read_text_from_region(region=None, save_debug_image=True):
     """
-    Захват области экрана и извлечение текста из нее,
-    используя различные методы предобработки
+    Захват области экрана и извлечение текста с цветами из нее
     """
     # Захват всего экрана для визуализации
     full_screen = capture_full_screen()
@@ -94,64 +80,66 @@ def read_text_from_region(region=None, save_debug_image=True):
         img = full_screen
     
     # Сохранение оригинального вырезанного региона
-    cv2.imwrite('original_region.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    # cv2.imwrite('original_region.png', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
     
-    # Применение различных методов предобработки
-    processed_images = preprocess_image_methods(img)
+    # Преобразование в оттенки серого (метод, который показал лучшие результаты)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # cv2.imwrite('processed_gray.png', gray)
     
-    results = []
+    # Распознавание текста с Tesseract в режиме --psm 6
+    text = pytesseract.image_to_string(gray, config='--psm 6')
     
-    for name, processed_img in processed_images:
-        # Сохранение обработанного изображения
-        cv2.imwrite(f'processed_{name}.png', processed_img)
-        
-        # Распознавание текста с разными настройками tesseract
-        configs = [
-            '--psm 6',  # Предполагаем один блок текста
-            '--psm 7',  # Предполагаем один строка текста
-            '--psm 8',  # Предполагаем одно слово
-            '--psm 4',  # Предполагаем одностолбцовый текст с переносами строк
-            '--psm 3 -l eng'  # Предполагаем произвольный текст, указываем английский язык
-        ]
-        
-        for config in configs:
-            try:
-                text = pytesseract.image_to_string(processed_img, config=config)
-                cleaned_text = text.strip()
-                if cleaned_text:  # Если текст не пустой
-                    results.append({
-                        "method": name,
-                        "config": config,
-                        "text": cleaned_text
-                    })
-            except Exception as e:
-                print(f"Ошибка при обработке {name} с {config}: {e}")
+    # Извлечение цветов из распознанного текста
+    colors = extract_colors(text)
     
-    return results
+    return {
+        "raw_text": text.strip(),
+        "colors": colors
+    }
 
-def find_best_result(results, keywords=["Red", "Red", "Green", "Green", "Blue"]):
+def monitor_color_sequence(region, interval=1.0, max_attempts=3):
     """
-    Пытается найти лучший результат из списка результатов,
-    основываясь на наличии ключевых слов
+    Непрерывный мониторинг области для отслеживания изменений в последовательности цветов
     """
-    if not results:
-        return None
+    last_colors = []
+    consecutive_failures = 0
     
-    # Сначала смотрим, есть ли результаты, содержащие все ключевые слова
-    best_matches = []
-    for result in results:
-        text = result["text"]
-        score = sum(1 for keyword in keywords if keyword.lower() in text.lower())
-        result["score"] = score
-        best_matches.append(result)
-    
-    # Сортируем по оценке (сколько ключевых слов содержится)
-    best_matches.sort(key=lambda x: x["score"], reverse=True)
-    
-    return best_matches[0] if best_matches else None
+    try:
+        while True:
+            result = read_text_from_region(region)
+            current_colors = result["colors"]
+            
+            # Если нашли хотя бы один цвет, сбрасываем счетчик неудач
+            if current_colors:
+                consecutive_failures = 0
+                
+                if current_colors != last_colors:
+                    print("\nОбнаружена новая последовательность цветов:")
+                    print(f"Сырой текст:\n{result['raw_text']}")
+                    print(f"Распознанные цвета: {current_colors}")
+                    
+                    # Проверка на наличие ровно 5 цветов
+                    if len(current_colors) == 5:
+                        print("✓ Последовательность корректна (5 цветов)")
+                    else:
+                        print(f"⚠ Внимание: обнаружено {len(current_colors)} цветов вместо 5")
+                    
+                    last_colors = current_colors
+            else:
+                consecutive_failures += 1
+                print(f"Не удалось обнаружить цвета (попытка {consecutive_failures}/{max_attempts})")
+                
+                # Если несколько попыток подряд неудачны, сделаем паузу подольше
+                if consecutive_failures >= max_attempts:
+                    print("Слишком много неудачных попыток подряд. Увеличиваем интервал...")
+                    time.sleep(interval * 3)  # Увеличенный интервал для восстановления
+                    consecutive_failures = 0
+            
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("Мониторинг остановлен")
 
 if __name__ == "__main__":
-    time.sleep(2)
     # Получение размеров экрана
     screen_width, screen_height = pyautogui.size()
     
@@ -163,30 +151,21 @@ if __name__ == "__main__":
     
     region = (left, top, width, height)
     
-    print("Начало обнаружения текста...")
+    print("Начало обнаружения цветовой последовательности...")
     print(f"Размеры экрана: {screen_width}x{screen_height}")
     print(f"Отслеживаемая область: {region}")
+    print("Поддерживаемые цвета: Red, Green, Black, Blue, White")
+    print("Нажмите Ctrl+C для остановки")
     
-    # Получение всех результатов с разными методами обработки
-    results = read_text_from_region(region)
+    # Для одноразового чтения:
+    result = read_text_from_region(region)
+    print(f"\nРаспознанный текст:\n{result['raw_text']}")
+    print(f"Обнаруженные цвета: {result['colors']}")
     
-    # Вывод всех результатов
-    print(f"Всего получено {len(results)} вариантов распознавания")
-    
-    for i, result in enumerate(results):
-        print(f"\nВариант #{i+1}:")
-        print(f"Метод обработки: {result['method']}")
-        print(f"Конфигурация Tesseract: {result['config']}")
-        print(f"Распознанный текст:\n{result['text']}")
-    
-    # Поиск лучшего результата
-    best_result = find_best_result(results)
-    if best_result:
-        print("\n" + "="*50)
-        print(f"Лучший результат (содержит больше всего ключевых слов):")
-        print(f"Метод обработки: {best_result['method']}")
-        print(f"Конфигурация Tesseract: {best_result['config']}")
-        print(f"Распознанный текст:\n{best_result['text']}")
-        print(f"Оценка (количество найденных ключевых слов): {best_result['score']}")
+    # Спрашиваем пользователя, хочет ли он запустить непрерывный мониторинг
+    choice = input("\nЗапустить непрерывный мониторинг последовательности цветов? (y/n): ")
+    if choice.lower() == 'y':
+        print("Запуск непрерывного мониторинга...")
+        monitor_color_sequence(region)
     else:
-        print("\nНе удалось найти подходящий результат")
+        print("Программа завершена")
