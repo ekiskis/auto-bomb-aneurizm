@@ -40,7 +40,13 @@ COLOR_RANGES = {
 
 
 # Прямоугольники для проводов (будет заполнено в main)
-WIRE_RECTANGLES = []
+WIRE_RECTANGLES = [
+        (75, 154, 235, 22),
+        (74, 205, 237, 26),
+        (74, 256, 235, 22),
+        (74, 311, 237, 17),
+        (74, 363, 235, 14)
+    ]
 
 def capture_full_screen():
     """
@@ -93,84 +99,30 @@ def extract_colors(text):
     return [color_info["original"] for color_info in found_colors]
 
 def detect_dominant_color(roi):
-    """
-    Определяет доминирующий цвет в области изображения (ROI)
-    """
-    # Усредним все пиксели в ROI для получения доминирующего цвета
-    average_color = np.mean(roi, axis=(0, 1)).astype(int)
-    
-    # Определяем, к какому цвету ближе всего средний цвет
-    detected_color = "unknown"
-    min_distance = float('inf')
-    
-    for color, ranges in COLOR_RANGES.items():
-        lower = ranges["lower"]
-        upper = ranges["upper"]
+    """Определяет цвет, который встречается в прямоугольнике хотя бы один раз."""
+    for pixel in roi.reshape(-1, 3):
+        b, g, r = pixel  # BGR -> RGB
+        rgb = np.array([r, g, b])
         
-        # Проверяем, попадает ли средний цвет в диапазон
-        if np.all(average_color >= lower) and np.all(average_color <= upper):
-            detected_color = ranges["name"]
-            break
-        
-        # Если не попадает в диапазон, вычисляем "расстояние" до центра диапазона
-        center = (lower + upper) / 2
-        distance = np.sum(np.abs(average_color - center))
-        
-        if distance < min_distance:
-            min_distance = distance
-            detected_color = ranges["name"]
+        for color, ranges in COLOR_RANGES.items():
+            if np.all(rgb >= ranges["lower"]) and np.all(rgb <= ranges["upper"]):
+                return ranges["name"], rgb.tolist()
     
-    return detected_color, average_color.tolist()
+    return "unknown", None
 
-def detect_wire_colors_in_rectangles(img, rectangles):
-    """
-    Определяет цвета проводов в заданных прямоугольных областях
-    rectangles - список кортежей (x, y, width, height) для каждого провода
-    """
+def detect_wire_colors(img, rectangles):
+    """Обнаружение цветов проводов в заданных прямоугольниках."""
     detected_colors = []
-    debug_img = img.copy()  # Копия для отображения прямоугольников
+    debug_img = img.copy()
     
-    # Проверяем цвет в каждом прямоугольнике
     for i, (x, y, w, h) in enumerate(rectangles):
-        # Проверяем, что координаты в пределах изображения
-        if (x >= 0 and y >= 0 and 
-            x + w <= img.shape[1] and 
-            y + h <= img.shape[0]):
-            
-            # Извлекаем область изображения (ROI)
-            roi = img[y:y+h, x:x+w]
-            
-            # Определяем доминирующий цвет в ROI
-            color_name, avg_color = detect_dominant_color(roi)
-            
-            # Отмечаем прямоугольник на отладочном изображении
-            color_bgr = (0, 255, 0)  # Зеленый цвет для рамки по умолчанию
-            
-            # Если цвет распознан правильно, используем его для рамки
-            if color_name.lower() in COLOR_RANGES:
-                color_data = COLOR_RANGES[color_name.lower()]
-                color_bgr = (int(color_data["lower"][2]), int(color_data["lower"][1]), int(color_data["lower"][0]))
-            
-            cv2.rectangle(debug_img, (x, y), (x + w, y + h), color_bgr, 2)
-            cv2.putText(debug_img, f"{i+1}: {color_name}", (x, y-5), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 1)
-            
-            detected_colors.append({
-                "position": i + 1,
-                "color": color_name,
-                "avg_rgb": avg_color
-            })
-        else:
-            detected_colors.append({
-                "position": i + 1,
-                "color": "invalid position",
-                "avg_rgb": None
-            })
+        roi = img[y:y+h, x:x+w]
+        color_name, _ = detect_dominant_color(roi)
+        
+        detected_colors.append({"position": i + 1, "color": color_name})
+        cv2.rectangle(debug_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(debug_img, color_name, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     
-    # Сохраняем отладочное изображение
-    cv2.imwrite('wire_detection_debug.png', cv2.cvtColor(debug_img, cv2.COLOR_RGB2BGR))
-    
-    # Возвращаем только названия цветов в порядке позиций
     return [color_info["color"] for color_info in detected_colors], debug_img
 
 def read_text_from_region(region=None, wire_region=None, save_debug_image=True):
@@ -211,7 +163,7 @@ def read_text_from_region(region=None, wire_region=None, save_debug_image=True):
     if wire_region:
         wire_img = capture_screen_region(wire_region)
         # Определение цветов проводов используя прямоугольники
-        wire_colors, debug_img = detect_wire_colors_in_rectangles(wire_img, WIRE_RECTANGLES)
+        wire_colors, debug_img = detect_wire_colors(wire_img, WIRE_RECTANGLES)
     else:
         wire_img = None
         wire_colors = []
@@ -516,45 +468,47 @@ if __name__ == "__main__":
     print("Поддерживаемые цвета: Red, Green, Black, Blue, White")
     
     # Настройка прямоугольников для проводов
-    setup_rects = input("\nЗапустить настройку прямоугольников для проводов? (y/n): ")
-    if setup_rects.lower() == 'y':
-        time.sleep(3)
-        rectangles = setup_wire_rectangles(wire_region)
-        WIRE_RECTANGLES = rectangles
+    # setup_rects = input("\nЗапустить настройку прямоугольников для проводов? (y/n): ")
+    # if setup_rects.lower() == 'y':
+    #     time.sleep(3)
+    #     rectangles = setup_wire_rectangles(wire_region)
+    #     WIRE_RECTANGLES = rectangles
         
-        # Предложение калибровки цветовых диапазонов
-        calibrate = input("\nЗапустить калибровку цветовых диапазонов? (y/n): ")
-        if calibrate.lower() == 'y' and rectangles:
-            new_color_ranges = get_color_calibration_from_rectangles(wire_region, rectangles)
+    #     # Предложение калибровки цветовых диапазонов
+    #     calibrate = input("\nЗапустить калибровку цветовых диапазонов? (y/n): ")
+    #     if calibrate.lower() == 'y' and rectangles:
+    #         new_color_ranges = get_color_calibration_from_rectangles(wire_region, rectangles)
             
-            # Спрашиваем, хочет ли пользователь использовать новые диапазоны
-            use_new_ranges = input("\nИспользовать новые цветовые диапазоны? (y/n): ")
-            if use_new_ranges.lower() == 'y':
-                time.sleep(3)
-                COLOR_RANGES.update(new_color_ranges)
-                print("Цветовые диапазоны обновлены")
-    else:
-        # Если пользователь не хочет настраивать прямоугольники, предложим ввести их вручную
-        print("\nВведите координаты прямоугольников для проводов (x, y, width, height):")
-        print("Например: 100,150,30,20")
-        print("Введите 'готово' когда закончите")
-        
-        rectangles = []
-        i = 1
-        while True:
-            rect_input = input(f"Провод {i}: ")
-            if rect_input.lower() == 'готово':
-                break
+    #         # Спрашиваем, хочет ли пользователь использовать новые диапазоны
+    #         use_new_ranges = input("\nИспользовать новые цветовые диапазоны? (y/n): ")
+    #         if use_new_ranges.lower() == 'y':
+    #             time.sleep(3)
+    #             COLOR_RANGES.update(new_color_ranges)
+    #             print("Цветовые диапазоны обновлены")
+    # else:
+    #     # Если пользователь не хочет настраивать прямоугольники, предложим ввести их вручную
+    #     print("\nВведите координаты прямоугольников для проводов (x, y, width, height):")
+    #     print("Например: 100,150,30,20")
+    #     print("Введите 'готово' когда закончите")
+               
+    #     rectangles = []
+    #     i = 1
+    #     while True:
+    #         rect_input = input(f"Провод {i}: ")
+    #         if rect_input.lower() == 'готово':
+    #             break
             
-            try:
-                x, y, w, h = map(int, rect_input.split(','))
-                rectangles.append((x, y, w, h))
-                i += 1
-            except:
-                print("Неверный формат. Используйте: x,y,width,height")
+    #         try:
+    #             x, y, w, h = map(int, rect_input.split(','))
+    #             rectangles.append((x, y, w, h))
+    #             i += 1
+    #         except:
+    #             print("Неверный формат. Используйте: x,y,width,height")
                 
-        print(WIRE_RECTANGLES)
-        WIRE_RECTANGLES = rectangles
+    #     print(WIRE_RECTANGLES)
+    rectangles = WIRE_RECTANGLES
+        
+    print(WIRE_RECTANGLES)
     
     # Выводим настроенные прямоугольники
     if WIRE_RECTANGLES:
