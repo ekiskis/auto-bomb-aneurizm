@@ -18,8 +18,8 @@ COLOR_RANGES = {
         "name": "Black"
     },
     "white": {
-        "lower": np.array([170, 150, 150]),
-        "upper": np.array([201, 180, 180]),
+        "lower": np.array([150, 150, 170]),
+        "upper": np.array([180, 180, 201]),
         "name": "White"
     },
     "green": {
@@ -28,13 +28,13 @@ COLOR_RANGES = {
         "name": "Green"
     },
     "blue": {
-        "lower": np.array([180, 0, 0]),
-        "upper": np.array([200, 0, 0]),
+        "lower": np.array([0, 0, 150]),
+        "upper": np.array([0, 0, 255]),
         "name": "Blue"
     },
     "red": {
-        "lower": np.array([100, 0, 0]),
-        "upper": np.array([255, 100, 100]),
+        "lower": np.array([130, 0, 0]),
+        "upper": np.array([255, 0, 0]),
         "name": "Red"
     }
 }
@@ -306,9 +306,10 @@ def calibrate_color_detection(wire_region):
     # Функция обработки кликов мыши
     def mouse_callback(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Получение цвета пикселя
-            rgb = wire_img[y, x]
             
+            # Получение цвета пикселя
+            rgb = wire_img[y, x]  # Получаем BGR
+                                    
             # Отображение цвета и координат
             print(f"Координаты: ({x}, {y}), RGB: {rgb}")
             
@@ -353,7 +354,7 @@ if __name__ == "__main__":
     wire_left = int(screen_width * 0.2)
     wire_top = int(screen_height * 0.3)
     wire_width = int(screen_width * 0.2)
-    wire_height = int(screen_height * 0.2)
+    wire_height = int(screen_height * 0.5)
     
     wire_region = (wire_left, wire_top, wire_width, wire_height)
     
@@ -364,19 +365,19 @@ if __name__ == "__main__":
     print("Поддерживаемые цвета: Red, Green, Black, Blue, White")
     
     # Предложение калибровки
-    # calibrate = input("Запустить калибровку цветов проводов? (y/n): ")
-    # if calibrate.lower() == 'y':
-    #     time.sleep(4)
-    #     calibrate_color_detection(wire_region)
+    calibrate = input("Запустить калибровку цветов проводов? (y/n): ")
+    if calibrate.lower() == 'y':
+        time.sleep(4)
+        calibrate_color_detection(wire_region)
         
-    #     # После калибровки предложение обновить цветовые диапазоны
-    #     print("\nПосле калибровки обновите цветовые диапазоны в коде (COLOR_RANGES)")
-    #     print("Пример:")
-    #     print('    "green": {')
-    #     print('        "lower": np.array([R-20, G-20, B-20]),')
-    #     print('        "upper": np.array([R+20, G+20, B+20]),')
-    #     print('        "name": "Green"')
-    #     print('    },')
+        # После калибровки предложение обновить цветовые диапазоны
+        print("\nПосле калибровки обновите цветовые диапазоны в коде (COLOR_RANGES)")
+        print("Пример:")
+        print('    "green": {')
+        print('        "lower": np.array([R-20, G-20, B-20]),')
+        print('        "upper": np.array([R+20, G+20, B+20]),')
+        print('        "name": "Green"')
+        print('    },')
     
     # time.sleep(4)
     
