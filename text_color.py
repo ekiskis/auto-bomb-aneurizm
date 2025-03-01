@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import keyboard
+import mouse
+import random
 import pyautogui
 import pytesseract
 from PIL import Image
@@ -24,14 +27,16 @@ def create_default_config():
     config['General']['# ВАЖНЫЕ НАСТРОЙКИ'] = '#'
     config['General']['# Путь к исполняемому файлу Tesseract OCR'] = '#'
     config['General']['tesseract_path'] = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    config['General']['# Интервал между проверками в секундах'] = '#'
-    config['General']['check_interval'] = '1.0'
-    config['General']['# Задержка после нажатия клавиши E в миллисекундах'] = '#'
-    config['General']['press_interval'] = '500'
+    config['General']['# Интервал между проверками в секундах(если дробное то через точку)'] = '#'
+    config['General']['check_interval'] = '2.0'
+    config['General']['# Задержка после нажатия клавиши E(проверяет изображение) в секундах(если дробное то через точку)'] = '#'
+    config['General']['press_interval'] = '0.2'
     config['General']['# Включение/выключение вывода логов в консоль (True/False)'] = '#'
     config['General']['enable_logs'] = 'True'
     config['General']['# Включение/выключение сохранения отладочных изображений (True/False)'] = ''
     config['General']['enable_debug_images'] = 'False'
+    config['General']['# Задержка после запуска программы'] = "#"
+    config['General']['start_timesleep'] = ""
     config['General']['# НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ'] = '#'
     
     # Координаты областей (коэффициенты от размеров экрана)
@@ -106,8 +111,9 @@ def config_to_dict(config):
     # Обработка основных настроек
     if 'General' in config:
         result['tesseract_path'] = config['General'].get('tesseract_path', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
-        result['check_interval'] = config['General'].getfloat('check_interval', 1.0)
-        result['press_interval'] = config['General'].getint('press_interval', 500)
+        result['check_interval'] = config['General'].getfloat('check_interval', 2.0)
+        result['press_interval'] = config['General'].getfloat('press_interval', 0.4)
+        result['start_timesleep'] = config['General'].getint('start_timesleep', 3)
         result['enable_logs'] = config['General'].getboolean('enable_logs', True)
         result['enable_debug_images'] = config['General'].getboolean('enable_debug_images', False)
     
@@ -490,16 +496,18 @@ def automated_color_check(config):
     
     try:
         input("Нажмите Enter что бы запустить")
+        time.sleep(1)
+        
         print("Запуск авто-работы на заводе")
         print("Для остановки нажмите Ctrl+C")
         
         while True:
             # Нажимаем клавишу E
             log_message("Нажатие клавиши E...", config)
-            pyautogui.press('e')
+            keyboard.press_and_release('e')
             
-            # Небольшая задержка для обновления экрана
-            time.sleep(press_interval / 1000)
+            # Задержка перед бимбой
+            time.sleep(press_interval)
             
             # Захват и анализ экрана
             result = read_text_from_region(text_region, wire_region, config)
@@ -516,10 +524,12 @@ def automated_color_check(config):
                 comparison = compare_color_sequences(current_text_colors, current_wire_colors)
                 
                 if comparison["match"]:
+                    pyautogui.click(click_x, click_y)
+                    time.sleep(0.1)
+                    keyboard.press_and_release('esc')
                     log_message(f"✓ СОВПАДЕНИЕ: {comparison['reason']}", config)
                     log_message(f"Производим клик в позицию ({click_x}, {click_y})...", config)
                     # Клик мышью в указанную позицию при совпадении
-                    pyautogui.click(click_x, click_y)
                 else:
                     log_message(f"✗ НЕСООТВЕТСТВИЕ: {comparison['reason']}", config)
                     if "differences" in comparison:
@@ -527,12 +537,12 @@ def automated_color_check(config):
                             log_message(f"  Позиция {diff['position']}: текст '{diff['text_color']}', провод '{diff['wire_color']}'", config)
                     log_message("Нажатие клавиши ESC...", config)
                     # Нажатие ESC при несоответствии
-                    pyautogui.press('esc')
+                    keyboard.press_and_release('esc')
             else:
                 log_message("Не удалось обнаружить полные последовательности цветов либо расшифровать текст", config)
                 log_message("Нажатие клавиши ESC...", config)
                 # Нажатие ESC при ошибке распознавания
-                pyautogui.press('esc')
+                keyboard.press_and_release('esc')
             
             # Ждем перед следующей проверкой
             time.sleep(interval)
