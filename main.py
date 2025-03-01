@@ -5,59 +5,81 @@ import pytesseract
 from PIL import Image
 import time
 
-# Path to tesseract executable - update this if needed
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Uncomment and adjust for Windows
+# Путь к исполняемому файлу tesseract - обновите при необходимости
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Раскомментируйте и настройте для Windows
+
+def capture_full_screen():
+    """
+    Захват всего экрана
+    """
+    screenshot = pyautogui.screenshot()
+    return np.array(screenshot)
 
 def capture_screen_region(region=None):
     """
-    Захватить определенную область экрана
-    область -это кортеж (слева, верхняя, ширина, высота)
-    Если регион нет, захватывает весь экран
+    Захват определенной области экрана
+    region - это кортеж (left, top, width, height)
+    Если region равен None, захватывает весь экран
     """
     screenshot = pyautogui.screenshot(region=region)
     return np.array(screenshot)
 
 def preprocess_image(image):
     """
-    Предварительно обрабатывать изображение для лучших результатов OCR
+    Предварительная обработка изображения для улучшения результатов OCR
     """
-    # Convert to grayscale
+    # Конвертация в оттенки серого
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    # Apply threshold to get black text on white background
+    # Применение порогового значения для получения черного текста на белом фоне
     _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
     
-    # Apply dilation to make text thicker
+    # Применение расширения для утолщения текста
     kernel = np.ones((1, 1), np.uint8)
     dilated = cv2.dilate(thresh, kernel, iterations=1)
     
     return dilated
 
-def read_text_from_region(region=None, preprocess=True):
+def read_text_from_region(region=None, preprocess=True, save_debug_image=True):
     """
-    Захватить область экрана и извлечь из него текст
+    Захват области экрана и извлечение текста из нее
     """
-    # Capture the region
-    img = capture_screen_region(region)
+    # Захват всего экрана для визуализации
+    full_screen = capture_full_screen()
     
-    # Предварительно обработать изображение, если это необходимо
+    # Рисование прямоугольника на полном экране для отображения области
+    if region and save_debug_image:
+        left, top, width, height = region
+        cv2.rectangle(full_screen, (left, top), (left + width, top + height), (0, 255, 0), 2)
+        # Сохранение полного экрана с прямоугольником
+        cv2.imwrite('full_screen_with_region.png', cv2.cvtColor(full_screen, cv2.COLOR_RGB2BGR))
+    
+    # Захват только указанной области для OCR
+    if region:
+        img = capture_screen_region(region)
+    else:
+        img = full_screen
+    
+    # Предварительная обработка изображения области, если требуется
     if preprocess:
-        img = preprocess_image(img)
+        preprocessed_img = preprocess_image(img)
         
-        # Отладка: Сохраните предварительно обработанное изображение
-        cv2.imwrite('preprocessed.png', img)
+        # Сохранение предварительно обработанной области
+        cv2.imwrite('preprocessed_region.png', preprocessed_img)
+    else:
+        preprocessed_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     
-    # Convert back to PIL Image for pytesseract
-    pil_img = Image.fromarray(img)
+    # Конвертация в PIL Image для pytesseract
+    pil_img = Image.fromarray(preprocessed_img)
     
-    # Extract text
+    # Извлечение текста
     text = pytesseract.image_to_string(pil_img, config='--psm 6')
     
     return text.strip()
 
 def monitor_text_changes(region, interval=1.0):
     """
-    Непрерывно отслеживать регион для изменений текста
+    Непрерывный мониторинг области для отслеживания изменений текста
     """
     last_text = ""
     
@@ -66,35 +88,34 @@ def monitor_text_changes(region, interval=1.0):
             current_text = read_text_from_region(region)
             
             if current_text != last_text:
-                print(f"Detected text: {current_text}")
+                print(f"Обнаруженный текст: {current_text}")
                 last_text = current_text
             
             time.sleep(interval)
     except KeyboardInterrupt:
-        print("Monitoring stopped")
+        print("Мониторинг остановлен")
 
 if __name__ == "__main__":
-    # Определите область для правого нижнего (отрегулируйте эти значения, чтобы соответствовать вашему экрану)
-    # Формат: (слева, вверху, ширина, высота)
-
-    # Примеры значений -отрегулируйте их для вашего конкретного экрана
+    
+    # Получение размеров экрана
     screen_width, screen_height = pyautogui.size()
     
-    # Это нацелен на приблизительно правящую нижнюю область, где показана последовательность проводов
-    # Вам нужно настроить эти значения на основе разрешения экрана
-    left = int(screen_width * 0.7)
-    top = int(screen_height * 0.6) 
-    width = int(screen_width * 0.3)
-    height = int(screen_height * 0.4)
+    # Определение области с указанными вами значениями
+    left = int(screen_width * 0.6)
+    top = int(screen_height * 0.65)
+    width = int(screen_width * 0.0725)
+    height = int(screen_height * 0.145)
     
     region = (left, top, width, height)
     
-    print("Starting text detection. Press Ctrl+C to stop.")
-    print(f"Monitoring region: {region}")
+    print("Начало обнаружения текста. Нажмите Ctrl+C для остановки.")
+    print(f"Размеры экрана: {screen_width}x{screen_height}")
+    print(f"Отслеживаемая область: {region}")
+    time.sleep(1)
     
-    # Для единовременного чтения:
+    # Для одноразового чтения:
     text = read_text_from_region(region)
-    print(f"Detected text: {text}")
+    print(f"Обнаруженный текст: {text}")
     
     # Для непрерывного мониторинга:
-    # monitor_text_changes (область)
+    # monitor_text_changes(region)
