@@ -1,16 +1,9 @@
 import cv2
 import numpy as np
-import keyboard
-import mouse
-import random
-import pyautogui
+import keyboard, pyautogui
 import pytesseract
-from PIL import Image
-import time
-import re
-import os
-import configparser
-import ast
+import re, os, time
+import configparser, ast
 
 def create_default_config():
     """
@@ -37,6 +30,10 @@ def create_default_config():
     config['General']['enable_debug_images'] = 'False'
     config['General']['# Задержка после запуска программы'] = "#"
     config['General']['start_timesleep'] = "3"
+    config['General']['# Время для нажатия esc после обнаружения несоответсвия либо при неудачной попытке обнаружения'] = "#"
+    config['General']['esc_aftError'] = '0.8'
+    config['General']['# Время после установки штампа для нажатия esc(необходима хотя бы небольшая задержка)'] = '#'
+    config['General']['esc_aftClick'] = '0.4'
     config['General']['# НИЖЕ ИДУТ СКОРЕЕ ВСЕГО ВАМ НЕ НУЖНЫЕ НАСТРОЙКИ'] = '#'
     
     # Координаты областей (коэффициенты от размеров экрана)
@@ -113,7 +110,9 @@ def config_to_dict(config):
         result['tesseract_path'] = config['General'].get('tesseract_path', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
         result['check_interval'] = config['General'].getfloat('check_interval', 2.0)
         result['press_interval'] = config['General'].getfloat('press_interval', 0.4)
-        result['start_timesleep'] = config['General'].getint('start_timesleep', 3)
+        result['start_timesleep'] = config['General'].getfloat('start_timesleep', 3)
+        result['esc_aftError'] = config['General'].getfloat('esc_aftError', 0.8)
+        result['esc_aftClick'] = config['General'].getfloat('esc_aftClick', 0.4)
         result['enable_logs'] = config['General'].getboolean('enable_logs', True)
         result['enable_debug_images'] = config['General'].getboolean('enable_debug_images', False)
     
@@ -494,6 +493,8 @@ def automated_color_check(config):
     interval = config.get("check_interval", 1.0)
     press_interval = config.get("press_interval", 500)
     start_timesleep = config.get("start_timesleep", 3)
+    esc_aftError = config.get("esc_aft_error", 0.8)
+    esc_aftClick = config.get("esc_aft_click", 0.4)
     
     try:
         input("Нажмите Enter что бы запустить")
@@ -507,7 +508,7 @@ def automated_color_check(config):
             log_message("Нажатие клавиши E...", config)
             keyboard.press_and_release('e')
             
-            # Задержка перед бимбой
+            # Задержка обнаружения
             time.sleep(press_interval)
             
             # Захват и анализ экрана
@@ -526,7 +527,7 @@ def automated_color_check(config):
                 
                 if comparison["match"]:
                     pyautogui.click(click_x, click_y)
-                    time.sleep(0.4)
+                    time.sleep(esc_aftClick)
                     keyboard.press_and_release('esc')
                     log_message(f"✓ СОВПАДЕНИЕ: {comparison['reason']}", config)
                     log_message(f"Производим клик в позицию ({click_x}, {click_y})...", config)
@@ -536,15 +537,15 @@ def automated_color_check(config):
                     if "differences" in comparison:
                         for diff in comparison["differences"]:
                             log_message(f"  Позиция {diff['position']}: текст '{diff['text_color']}', провод '{diff['wire_color']}'", config)
+                    time.sleep(esc_aftError)
                     log_message("Нажатие клавиши ESC...", config)
                     # Нажатие ESC при несоответствии
-                    time.sleep(0.8)
                     keyboard.press_and_release('esc')
             else:
+                time.sleep(esc_aftError)
                 log_message("Не удалось обнаружить полные последовательности цветов либо расшифровать текст", config)
                 log_message("Нажатие клавиши ESC...", config)
                 # Нажатие ESC при ошибке распознавания
-                time.sleep(0.8)
                 keyboard.press_and_release('esc')
             
             # Ждем перед следующей проверкой
