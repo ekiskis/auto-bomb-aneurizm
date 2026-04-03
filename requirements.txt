@@ -2,6 +2,6 @@ opencv-python==4.11.0.86
 numpy==2.2.3
 pyautogui==0.9.54
 pytesseract==0.3.13
-pillow==11.1.0
+pillow==12.1.1
 keyboard==0.13.5
 mouse==0.7.1
